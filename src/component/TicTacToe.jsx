@@ -1,88 +1,22 @@
-import { useState } from "react";
-import React from "react";
+import React, { useState } from "react";
 
-function Square({ value, onSquareClick }) {
+function Square({ value, onClick }) {
   return (
     <button
-      className="w-16 h-16 border-4 border-black text-2xl font-bold flex items-center justify-center hover:bg-fuchsia-500 transition cursor-pointer"
-      onClick={onSquareClick}
+      className="w-16 h-16 border-2 border-black text-2xl font-bold flex items-center justify-center hover:bg-blue-600 transition cursor-pointer"
+      onClick={onClick}
     >
       {value}
     </button>
   );
 }
 
-function Board({ xIsNext, squares, onPlay }) {
-  function handleClick(i) {
-    if (squares[i] || calculateWinner(squares)) return;
-    const nextSquares = squares.slice();
-    nextSquares[i] = xIsNext ? "X" : "O";
-    onPlay(nextSquares);
-  }
-
-  const winner = calculateWinner(squares);
-  const status = winner
-    ? "Winner: " + winner
-    : "Next Player: " + (xIsNext ? "X" : "O");
-
+function Board({ squares, onSquareClick }) {
   return (
-    <>
-      <div className="mb-4 text-2xl font-semibold text-black font-mono">
-        {status}
-      </div>
-      <div className="grid grid-cols-3 gap-2 ">
-        {squares.map((value, i) => (
-          <Square key={i} value={value} onSquareClick={() => handleClick(i)} />
-        ))}
-      </div>
-    </>
-  );
-}
-
-export default function Game() {
-  const [history, setHistory] = useState([Array(9).fill(null)]);
-  const [currentMove, setCurrentMove] = useState(0);
-  const xIsNext = currentMove % 2 === 0;
-  const currentSquares = history[currentMove];
-
-  function jumpTo(nextMove) {
-    setCurrentMove(nextMove);
-  }
-
-  function handlePlay(nextSquares) {
-    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
-    setHistory(nextHistory);
-    setCurrentMove(nextHistory.length - 1);
-  }
-
-  const moves = history.map((_, move) => {
-    const description = move ? `Go to move #${move}` : "Go to game start";
-    return (
-      <li key={move}>
-        <button
-          onClick={() => jumpTo(move)}
-          className="text-sm text-black underline hover:text-red-600 cursor-pointer"
-        >
-          {description}
-        </button>
-      </li>
-    );
-  });
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-b from-sky-500 to-white">
-      <div className="p-8 bg-linear-to-t from-sky-500 to-indigo-500 rounded-xl shadow-md">
-        <div className="mb-6">
-          <Board
-            xIsNext={xIsNext}
-            squares={currentSquares}
-            onPlay={handlePlay}
-          />
-        </div>
-        <div>
-          <ol className="space-y-1">{moves}</ol>
-        </div>
-      </div>
+    <div className="grid grid-cols-3 gap-2">
+      {squares.map((value, i) => (
+        <Square key={i} value={value} onClick={() => onSquareClick(i)} />
+      ))}
     </div>
   );
 }
@@ -98,12 +32,106 @@ function calculateWinner(squares) {
     [0, 4, 8],
     [2, 4, 6],
   ];
-
-  for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i];
+  for (const [a, b, c] of lines) {
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
       return squares[a];
     }
   }
   return null;
+}
+
+export default function Game() {
+  const [playerX, setPlayerX] = useState("");
+  const [playerO, setPlayerO] = useState("");
+  const [start, setStart] = useState(false);
+
+  const [squares, setSquares] = useState(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState(true);
+  const [winner, setWinner] = useState(null);
+  const [score, setScore] = useState({ X: 0, O: 0 });
+
+  const currentPlayer = xIsNext ? "X" : "O";
+  const currentName = xIsNext ? playerX : playerO;
+
+  const handleClick = (i) => {
+    if (squares[i] || winner) return;
+
+    const nextSquares = squares.slice();
+    nextSquares[i] = currentPlayer;
+    setSquares(nextSquares);
+
+    const win = calculateWinner(nextSquares);
+    if (win) {
+      setWinner(win);
+      setScore((prev) => ({ ...prev, [win]: prev[win] + 1 }));
+    } else {
+      setXIsNext(!xIsNext);
+    }
+  };
+
+  const handleStart = () => {
+    if (!playerX || !playerO) {
+      alert("Enter Two Player Name.");
+      return;
+    }
+    setStart(true);
+  };
+
+  const handlePlayAgain = () => {
+    setSquares(Array(9).fill(null));
+    setXIsNext(true);
+    setWinner(null);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-500 to-white">
+      <div className="p-8 bg-gradient-to-t from-sky-500 to-indigo-500 rounded-xl shadow-md w-[350px]">
+        {!start ? (
+          <div className="space-y-4 text-white">
+            <h2 className="text-2xl font-bold text-center">Tic Tac Toe</h2>
+            <input
+              type="text"
+              placeholder="Player Name X"
+              value={playerX}
+              onChange={(e) => setPlayerX(e.target.value)}
+              className="p-2 rounded w-full text-black border-3 border-white"
+            />
+            <input
+              type="text"
+              placeholder="Player Name O"
+              value={playerO}
+              onChange={(e) => setPlayerO(e.target.value)}
+              className="p-2 rounded w-full text-black border-3 border-white"
+            />
+            <button
+              onClick={handleStart}
+              className="w-full bg-black text-white py-2 px-4 rounded hover:bg-blue-600 transition cursor-pointer"
+            >
+              Start Game
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="text-white text-center mb-4">
+              <h2 className="text-xl font-semibold">
+                {winner
+                  ? `Winner: ${winner === "X" ? playerX : playerO}`
+                  : `Turn: ${currentName}`}
+              </h2>
+              <p className="mt-2 text-sm">
+                Score {playerX} (X): {score.X} | {playerO} (O): {score.O}
+              </p>
+            </div>
+            <Board squares={squares} onSquareClick={handleClick} />
+            <button
+              onClick={handlePlayAgain}
+              className="mt-6 w-full bg-white text-black px-4 py-2 rounded hover:bg-blue-600 transition cursor-pointer"
+            >
+              Play Again
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
